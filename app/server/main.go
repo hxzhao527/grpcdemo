@@ -1,6 +1,10 @@
 package main
 
 import (
+	helloworld_impl "grpcdemo/pkg/service/helloword"
+	routeguide_impl "grpcdemo/pkg/service/routeguide"
+	"grpcdemo/proto/helloworld"
+	"grpcdemo/proto/routeguide"
 	"log"
 	"net"
 	"os"
@@ -8,8 +12,6 @@ import (
 	"syscall"
 
 	"google.golang.org/grpc"
-	helloworld_impl "grpcdemo/pkg/service/helloword"
-	"grpcdemo/proto/helloworld"
 )
 
 const (
@@ -29,6 +31,7 @@ func main() {
 	rpcServer := grpc.NewServer()
 
 	helloworld.RegisterHelloServer(rpcServer, &helloworld_impl.Server{})
+	routeguide.RegisterRouteGuideServer(rpcServer, routeguide_impl.NewServer())
 	go func() {
 		done <- rpcServer.Serve(lis)
 	}()
