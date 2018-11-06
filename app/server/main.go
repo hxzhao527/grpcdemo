@@ -4,6 +4,7 @@ package main
 
 import (
 	"flag"
+	"grpcdemo/pkg/server"
 	helloworld_impl "grpcdemo/pkg/service/helloworld"
 	routeguide_impl "grpcdemo/pkg/service/routeguide"
 	"grpcdemo/proto/helloworld"
@@ -14,19 +15,20 @@ import (
 	"os/signal"
 	"syscall"
 
-	"google.golang.org/grpc/credentials"
-
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 const (
 	port         = ":50051"
 	certFilePath = "assets/public.pem"
 	keyFilePath  = "assets/private.key"
+	authToken    = "grpcdemo"
 )
 
 var (
-	ssl = flag.Bool("ssl", false, "whether TLS enabled")
+	ssl  = flag.Bool("ssl", false, "whether TLS enabled")
+	auth = flag.Bool("auth", false, "whether oauth enabled")
 )
 
 func main() {
@@ -52,7 +54,14 @@ func main() {
 		}
 		opts = append(opts, grpc.Creds(creds))
 	}
+	if *auth {
+		log.Println("server enable oauth")
+		authInterceptor := server.MixAuthInterceptor{Token: authToken}
+		opts = append(opts, grpc.UnaryInterceptor(authInterceptor.UnaryInterceptor()))
+		opts = append(opts, grpc.StreamInterceptor(authInterceptor.StreamInterceptor()))
+	}
 
+	// https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 	rpcServer := grpc.NewServer(opts...)
 	log.Println("server started")
 

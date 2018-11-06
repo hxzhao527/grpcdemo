@@ -20,6 +20,7 @@ package main
 
 import (
 	"flag"
+	"grpcdemo/pkg/client"
 	"log"
 	"time"
 
@@ -38,11 +39,13 @@ const (
 	address     = "localhost:50051"
 	defaultName = "世界"
 	caFilePath  = "assets/public.pem"
+	authToken   = "grpcdemo"
 )
 
 var (
 	name = flag.String("name", defaultName, "name to contact the server")
 	ssl  = flag.Bool("ssl", false, "whether TLS enabled")
+	auth = flag.Bool("auth", false, "whether oauth enabled")
 )
 
 func sayHello(client helloworld.HelloClient, name string) {
@@ -88,6 +91,10 @@ func main() {
 		opts = append(opts, grpc.WithInsecure())
 	}
 
+	if *auth {
+		opts = append(opts, grpc.WithPerRPCCredentials(&client.AuthCreds{Token: authToken}))
+	}
+
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
@@ -95,10 +102,10 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := helloworld.NewHelloClient(conn)
+	helloClient := helloworld.NewHelloClient(conn)
 
-	sayHello(client, *name)
+	sayHello(helloClient, *name)
 
-	sayHelloOnce(client, *name)
-	sayHelloOnce(client, *name)
+	sayHelloOnce(helloClient, *name)
+	sayHelloOnce(helloClient, *name)
 }

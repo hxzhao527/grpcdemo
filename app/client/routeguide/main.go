@@ -24,6 +24,7 @@ package main
 
 import (
 	"flag"
+	"grpcdemo/pkg/client"
 	"grpcdemo/proto/routeguide"
 	"io"
 	"log"
@@ -39,10 +40,12 @@ import (
 const (
 	serverAddr = "localhost:50051"
 	caFilePath = "assets/public.pem"
+	authToken  = "grpcdemo"
 )
 
 var (
-	ssl = flag.Bool("ssl", false, "whether TLS enabled")
+	ssl  = flag.Bool("ssl", false, "whether TLS enabled")
+	auth = flag.Bool("auth", false, "whether oauth enabled")
 )
 
 // printFeature gets the feature for the given point.
@@ -166,6 +169,10 @@ func main() {
 		opts = append(opts, grpc.WithInsecure())
 	}
 
+	if *auth {
+		opts = append(opts, grpc.WithPerRPCCredentials(&client.AuthCreds{Token: authToken}))
+	}
+
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(serverAddr, opts...)
 
@@ -173,23 +180,23 @@ func main() {
 		log.Fatalf("fail to dial: %v", err)
 	}
 	defer conn.Close()
-	client := routeguide.NewRouteGuideClient(conn)
+	routeClient := routeguide.NewRouteGuideClient(conn)
 
 	// Looking for a valid feature
-	printFeature(client, &routeguide.Point{Latitude: 409146138, Longitude: -746188906})
+	printFeature(routeClient, &routeguide.Point{Latitude: 409146138, Longitude: -746188906})
 
 	// Feature missing.
-	printFeature(client, &routeguide.Point{Latitude: 0, Longitude: 0})
+	printFeature(routeClient, &routeguide.Point{Latitude: 0, Longitude: 0})
 
 	// Looking for features between 40, -75 and 42, -73.
-	printFeatures(client, &routeguide.Rectangle{
+	printFeatures(routeClient, &routeguide.Rectangle{
 		Lo: &routeguide.Point{Latitude: 400000000, Longitude: -750000000},
 		Hi: &routeguide.Point{Latitude: 420000000, Longitude: -730000000},
 	})
 
 	// RecordRoute
-	runRecordRoute(client)
+	runRecordRoute(routeClient)
 
 	// RouteChat
-	runRouteChat(client)
+	runRouteChat(routeClient)
 }
