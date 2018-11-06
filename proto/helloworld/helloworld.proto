@@ -24,6 +24,8 @@ package helloworld;
 service Hello {
     // Sends a greeting
     rpc SayHello (HelloRequest) returns (HelloReply) {}
+    // Each user can say hello once.
+    rpc SayHelloOnce (HelloRequest) returns (HelloReply) {}
 }
 
 // The request message containing the user's name.

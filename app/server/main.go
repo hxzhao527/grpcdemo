@@ -30,7 +30,7 @@ func main() {
 	}
 	rpcServer := grpc.NewServer()
 
-	helloworld.RegisterHelloServer(rpcServer, &helloworld_impl.Server{})
+	helloworld.RegisterHelloServer(rpcServer, helloworld_impl.NewServer())
 	routeguide.RegisterRouteGuideServer(rpcServer, routeguide_impl.NewServer())
 	go func() {
 		done <- rpcServer.Serve(lis)

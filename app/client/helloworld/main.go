@@ -23,9 +23,12 @@ import (
 	"os"
 	"time"
 
+	"google.golang.org/grpc/status"
+
 	"grpcdemo/proto/helloworld"
 
 	"golang.org/x/net/context"
+	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 )
 
@@ -34,6 +37,35 @@ const (
 	defaultName = "世界"
 )
 
+func sayHello(client helloworld.HelloClient, name string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := client.SayHello(ctx, &helloworld.HelloRequest{Name: name})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Greeting: %s", r.Message)
+}
+
+func sayHelloOnce(client helloworld.HelloClient, name string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := client.SayHelloOnce(ctx, &helloworld.HelloRequest{Name: name})
+	if err != nil {
+		s := status.Convert(err)
+		for _, d := range s.Details() {
+			switch info := d.(type) {
+			case *epb.QuotaFailure:
+				log.Printf("Quota failure: %v", info)
+			default:
+				log.Printf("Unexpected type: %v", info)
+			}
+		}
+		return
+	}
+	log.Printf("Greeting: %s", r.Message)
+}
+
 func main() {
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
@@ -41,18 +73,15 @@ func main() {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	c := helloworld.NewHelloClient(conn)
+	client := helloworld.NewHelloClient(conn)
 
 	// Contact the server and print out its response.
 	name := defaultName
 	if len(os.Args) > 1 {
 		name = os.Args[1]
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := c.SayHello(ctx, &helloworld.HelloRequest{Name: name})
-	if err != nil {
-		log.Fatalf("could not greet: %v", err)
-	}
-	log.Printf("Greeting: %s", r.Message)
+	sayHello(client, name)
+
+	sayHelloOnce(client, name)
+	sayHelloOnce(client, name)
 }
