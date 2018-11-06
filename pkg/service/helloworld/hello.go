@@ -1,4 +1,6 @@
-package helloword
+//go:generate protoc -I ../../../proto/helloworld --go_out=plugins=grpc:../../../proto/helloworld  ../../../proto/helloworld/helloworld.proto
+
+package helloworld
 
 import (
 	"fmt"

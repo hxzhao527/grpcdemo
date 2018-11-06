@@ -1,3 +1,5 @@
+//go:generate protoc -I ../../../proto/routeguide --go_out=plugins=grpc:../../../proto/routeguide ../../../proto/routeguide/route_guide.proto
+
 package routeguide
 
 import (
@@ -20,8 +22,9 @@ type Server struct {
 	mu         sync.Mutex // protects routeNotes
 	routeNotes map[string][]*routeguide.RouteNote
 }
+
 // NewServer return a new server with resource-loaded
-func NewServer() *Server{
+func NewServer() *Server {
 	s := &Server{routeNotes: make(map[string][]*routeguide.RouteNote)}
 	s.loadFeatures()
 	return s

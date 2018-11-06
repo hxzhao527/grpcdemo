@@ -23,11 +23,14 @@
 package main
 
 import (
+	"flag"
 	"grpcdemo/proto/routeguide"
 	"io"
 	"log"
 	"math/rand"
 	"time"
+
+	"google.golang.org/grpc/credentials"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -35,6 +38,11 @@ import (
 
 const (
 	serverAddr = "localhost:50051"
+	caFilePath = "assets/public.pem"
+)
+
+var (
+	ssl = flag.Bool("ssl", false, "whether TLS enabled")
 )
 
 // printFeature gets the feature for the given point.
@@ -145,8 +153,22 @@ func randomPoint(r *rand.Rand) *routeguide.Point {
 }
 
 func main() {
+	flag.Parse()
+	var opts []grpc.DialOption
 
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+	if *ssl {
+		creds, err := credentials.NewClientTLSFromFile(caFilePath, "")
+		if err != nil {
+			log.Fatalf("Failed to create TLS credentials %v", err)
+		}
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
+	}
+
+	// Set up a connection to the server.
+	conn, err := grpc.Dial(serverAddr, opts...)
+
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}

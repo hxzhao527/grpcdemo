@@ -19,9 +19,11 @@
 package main
 
 import (
+	"flag"
 	"log"
-	"os"
 	"time"
+
+	"google.golang.org/grpc/credentials"
 
 	"google.golang.org/grpc/status"
 
@@ -35,6 +37,12 @@ import (
 const (
 	address     = "localhost:50051"
 	defaultName = "世界"
+	caFilePath  = "assets/public.pem"
+)
+
+var (
+	name = flag.String("name", defaultName, "name to contact the server")
+	ssl  = flag.Bool("ssl", false, "whether TLS enabled")
 )
 
 func sayHello(client helloworld.HelloClient, name string) {
@@ -67,21 +75,30 @@ func sayHelloOnce(client helloworld.HelloClient, name string) {
 }
 
 func main() {
+	flag.Parse()
+	var opts []grpc.DialOption
+
+	if *ssl {
+		creds, err := credentials.NewClientTLSFromFile(caFilePath, "")
+		if err != nil {
+			log.Fatalf("Failed to create TLS credentials %v", err)
+		}
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
+	}
+
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
+
 	client := helloworld.NewHelloClient(conn)
 
-	// Contact the server and print out its response.
-	name := defaultName
-	if len(os.Args) > 1 {
-		name = os.Args[1]
-	}
-	sayHello(client, name)
+	sayHello(client, *name)
 
-	sayHelloOnce(client, name)
-	sayHelloOnce(client, name)
+	sayHelloOnce(client, *name)
+	sayHelloOnce(client, *name)
 }

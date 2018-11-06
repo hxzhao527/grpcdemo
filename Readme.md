@@ -25,9 +25,22 @@ git clone https://github.com/hxzhao527/grpcdemo.git $GOPATH/src/grpcdemo
 cd $GOPATH/src/grpcdemo/proto
 protoc -I helloworld/ helloworld/helloworld.proto --go_out=plugins=grpc:helloworld
 ```
+使用`go generate`也行, 自己看吧
 ### 4. 运行在app目录下的server和client
 这里以helloworld为例
 ```sh
+go generate $GOPATH/src/grpcdemo/app/server
+go generate $GOPATH/src/grpcdemo/pkg/service/helloworld
 nohup go run $GOPATH/src/grpcdemo/app/server/main.go &
 go run $GOPATH/src/grpcdemo/app/helloworld/client/main.go
 ```
+如果要使用[Authentication](https://grpc.io/docs/guides/auth.html#go)
+```sh
+go generate $GOPATH/src/grpcdemo/app/server
+go generate $GOPATH/src/grpcdemo/pkg/service/helloworld
+nohup go run $GOPATH/src/grpcdemo/app/server/main.go -ssl &
+go run $GOPATH/src/grpcdemo/app/helloworld/client/main.go -ssl
+```
+
+## 有什么注意的吗?
+1. [openssl/1.1.1 bug](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=898470)会导致`go generate`返回码不是0, 忽略就好.
