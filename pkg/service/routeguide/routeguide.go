@@ -5,6 +5,7 @@ package routeguide
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc"
 	"grpcdemo/proto/routeguide"
 	"io"
 	"log"
@@ -117,6 +118,10 @@ func (s *Server) RouteChat(stream routeguide.RouteGuide_RouteChatServer) error {
 			}
 		}
 	}
+}
+
+func (s *Server) Register(rpcServer *grpc.Server) {
+	routeguide.RegisterRouteGuideServer(rpcServer, s)
 }
 
 // loadFeatures loads features

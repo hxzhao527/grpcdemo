@@ -7,8 +7,6 @@ import (
 	"grpcdemo/pkg/server"
 	helloworld_impl "grpcdemo/pkg/service/helloworld"
 	routeguide_impl "grpcdemo/pkg/service/routeguide"
-	"grpcdemo/proto/helloworld"
-	"grpcdemo/proto/routeguide"
 	"log"
 	"net"
 	"os"
@@ -34,7 +32,7 @@ var (
 func main() {
 	flag.Parse()
 
-	var opts []grpc.ServerOption
+	var opts []server.RPCServerOption
 	done := make(chan error)
 	sigs := make(chan os.Signal)
 
@@ -52,25 +50,23 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to create TLS credentials %v", err)
 		}
-		opts = append(opts, grpc.Creds(creds))
+		opts = append(opts, server.WithGrpcServerOption(grpc.Creds(creds)))
 	}
 	if *auth {
-		log.Println("server enable oauth")
-		authInterceptor := server.MixAuthInterceptor{Token: authToken}
-		opts = append(opts, grpc.UnaryInterceptor(authInterceptor.UnaryInterceptor()))
-		opts = append(opts, grpc.StreamInterceptor(authInterceptor.StreamInterceptor()))
+		log.Println("server enable auth")
+		opts = append(opts, server.WithAuthInterceptor(authToken))
 	}
 
-	// https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
-	rpcServer := grpc.NewServer(opts...)
-	log.Println("server started")
+	//opts = append(opts, server.WithUnaryInterceptor(temp.Interceptor))
+	opts = append(opts, server.WithRecovery(nil))
 
-	helloworld.RegisterHelloServer(rpcServer, helloworld_impl.NewServer())
-	routeguide.RegisterRouteGuideServer(rpcServer, routeguide_impl.NewServer())
+	rpcServer := server.NewRPCServer(opts...)
+
+	rpcServer.RegisterService(helloworld_impl.NewServer(), routeguide_impl.NewServer())
 	log.Println("service Registered")
 
 	go func() {
-		done <- rpcServer.Serve(lis)
+		done <- rpcServer.Run(lis)
 	}()
 
 	select {
@@ -81,8 +77,7 @@ func main() {
 	case <-sigs:
 		{
 			log.Println("Signal received: terminated by user")
-			rpcServer.GracefulStop()
-			log.Println("rpc server graceful stopped successfully...")
+			rpcServer.Stop()
 		}
 	}
 }

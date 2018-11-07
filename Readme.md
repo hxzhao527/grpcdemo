@@ -6,6 +6,7 @@
 ## 这里使用了什么
 1. [gRPC](https://grpc.io/docs/quickstart/go.html)
 2. [官方demo](https://github.com/grpc/grpc-go/tree/master/examples)
+3. [go-grpc-middleware](https://github.com/grpc-ecosystem/go-grpc-middleware)
 
 ## 怎么运行
 ### 1. 安装protoc compiler

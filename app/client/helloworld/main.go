@@ -20,6 +20,7 @@ package main
 
 import (
 	"flag"
+	"github.com/golang/protobuf/ptypes/empty"
 	"grpcdemo/pkg/client"
 	"log"
 	"time"
@@ -77,6 +78,16 @@ func sayHelloOnce(client helloworld.HelloClient, name string) {
 	log.Printf("Greeting: %s", r.Message)
 }
 
+func tryPanic(client helloworld.HelloClient) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := client.TryPanic(ctx, &empty.Empty{})
+	if err != nil {
+		s := status.Convert(err)
+		log.Printf("request get error: %v", s.Message())
+	}
+}
+
 func main() {
 	flag.Parse()
 	var opts []grpc.DialOption
@@ -108,4 +119,6 @@ func main() {
 
 	sayHelloOnce(helloClient, *name)
 	sayHelloOnce(helloClient, *name)
+
+	tryPanic(helloClient)
 }

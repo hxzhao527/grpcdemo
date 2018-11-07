@@ -4,6 +4,8 @@ package helloworld
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc"
 	"grpcdemo/proto/helloworld"
 	"sync"
 
@@ -50,4 +52,12 @@ func (s *Server) SayHelloOnce(ctx context.Context, in *helloworld.HelloRequest) 
 		return nil, ds.Err()
 	}
 	return &helloworld.HelloReply{Message: "Hello " + in.Name}, nil
+}
+
+func (s *Server) TryPanic(context.Context, *empty.Empty) (*empty.Empty, error) {
+	panic("just try to panic and recovery")
+}
+
+func (s *Server) Register(rpcServer *grpc.Server) {
+	helloworld.RegisterHelloServer(rpcServer, s)
 }
