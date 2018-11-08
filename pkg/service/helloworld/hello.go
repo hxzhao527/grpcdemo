@@ -5,24 +5,25 @@ package helloworld
 import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
-	"google.golang.org/grpc"
-	"grpcdemo/proto/helloworld"
-	"sync"
-
 	"golang.org/x/net/context"
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"grpcdemo/proto/helloworld"
+	"sync"
+	"sync/atomic"
 )
 
 // Server is used to implement helloworld.GreeterServer.
 type Server struct {
-	mu    sync.Mutex
-	count map[string]int
+	mu          sync.Mutex
+	count       map[string]int
+	specialFlag int32
 }
 
 func NewServer() *Server {
-	return &Server{count: make(map[string]int)}
+	return &Server{count: make(map[string]int), specialFlag: 0}
 }
 
 // SayHello implements helloworld.GreeterServer
@@ -54,8 +55,12 @@ func (s *Server) SayHelloOnce(ctx context.Context, in *helloworld.HelloRequest) 
 	return &helloworld.HelloReply{Message: "Hello " + in.Name}, nil
 }
 
+// TryPanic will return panic when it is called an the first time. And later it will act normally, just return empty.
 func (s *Server) TryPanic(context.Context, *empty.Empty) (*empty.Empty, error) {
-	panic("just try to panic and recovery")
+	if atomic.CompareAndSwapInt32(&s.specialFlag, 0, 1) {
+		panic("just try to panic and recovery")
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *Server) Register(rpcServer *grpc.Server) {

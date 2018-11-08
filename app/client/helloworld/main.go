@@ -20,10 +20,12 @@ package main
 
 import (
 	"flag"
-	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc/codes"
 	"grpcdemo/pkg/client"
 	"log"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/empty"
 
 	"google.golang.org/grpc/credentials"
 
@@ -31,6 +33,7 @@ import (
 
 	"grpcdemo/proto/helloworld"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"golang.org/x/net/context"
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
@@ -85,7 +88,9 @@ func tryPanic(client helloworld.HelloClient) {
 	if err != nil {
 		s := status.Convert(err)
 		log.Printf("request get error: %v", s.Message())
+		return
 	}
+	log.Println("request return normally")
 }
 
 func main() {
@@ -105,6 +110,12 @@ func main() {
 	if *auth {
 		opts = append(opts, grpc.WithPerRPCCredentials(&client.AuthCreds{Token: authToken}))
 	}
+
+	retryOpts := []grpc_retry.CallOption{
+		grpc_retry.WithMax(3),
+		grpc_retry.WithCodes(codes.Internal),
+	}
+	opts = append(opts, grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)))
 
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, opts...)

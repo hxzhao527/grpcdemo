@@ -17,11 +17,13 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:a93a4de7b00fb9cc952bc0483e9a32cd273adbbd7f3282bfe89656b2f88fb08c"
+  digest = "1:1f55998daa744c99341b0fade96711455e8c31525b4744080c5e48bafadff736"
   name = "github.com/grpc-ecosystem/go-grpc-middleware"
   packages = [
     ".",
     "auth",
+    "retry",
+    "util/backoffutils",
     "util/metautils",
   ]
   pruneopts = "UT"
@@ -129,6 +131,7 @@
     "github.com/golang/protobuf/ptypes/empty",
     "github.com/grpc-ecosystem/go-grpc-middleware",
     "github.com/grpc-ecosystem/go-grpc-middleware/auth",
+    "github.com/grpc-ecosystem/go-grpc-middleware/retry",
     "golang.org/x/net/context",
     "google.golang.org/genproto/googleapis/rpc/errdetails",
     "google.golang.org/grpc",
