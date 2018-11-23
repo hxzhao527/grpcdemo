@@ -7,6 +7,7 @@
 1. [gRPC](https://grpc.io/docs/quickstart/go.html)
 2. [官方demo](https://github.com/grpc/grpc-go/tree/master/examples)
 3. [go-grpc-middleware](https://github.com/grpc-ecosystem/go-grpc-middleware)
+4. ~~[grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)~~
 
 ## 怎么运行
 ### 1. 安装protoc compiler
@@ -45,3 +46,4 @@ go run $GOPATH/src/grpcdemo/app/helloworld/client/main.go -ssl
 
 ## 有什么注意的吗?
 1. [openssl/1.1.1 bug](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=898470)会导致`go generate`返回码不是0, 忽略就好.
+2. 为啥不用[grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway), 鸡肋.不如使用`gin`写个web包一下还. 而且按照官方的指导竟然不能编译(可能是使用了dep的问题, 导致依赖默认拉不到最新).

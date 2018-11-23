@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
 	"grpcdemo/pkg/service"
 	"log"
 	"net"
@@ -16,6 +17,9 @@ type RPCServer struct {
 	grpcUnaryInterceptors  []grpc.UnaryServerInterceptor
 	grpcStreamInterceptors []grpc.StreamServerInterceptor
 	grpcopts               []grpc.ServerOption
+
+	grpcsvc   map[string]service.Service
+	healthSvc *health.Server
 }
 
 func WithUnaryInterceptor(interceptor ...grpc.UnaryServerInterceptor) RPCServerOption {
@@ -47,10 +51,15 @@ func NewRPCServer(opts ...RPCServerOption) *RPCServer {
 	srv.grpcopts = append(srv.grpcopts, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(srv.grpcUnaryInterceptors...)))
 
 	srv.grpcsrv = grpc.NewServer(srv.grpcopts...)
+	srv.grpcsvc = make(map[string]service.Service)
 	return srv
 }
 
 func (srv *RPCServer) Run(lis net.Listener) error {
+	if srv.healthSvc != nil {
+		srv.initServiceStatus()
+		go srv.checkServiceStatus()
+	}
 	return srv.grpcsrv.Serve(lis)
 }
 
@@ -59,8 +68,14 @@ func (srv *RPCServer) Stop() {
 	log.Println("rpc server graceful stopped successfully...")
 }
 
+// if want to use health, use AttachService instead
 func (srv *RPCServer) RegisterService(srs ...service.ServiceRegister) {
 	for _, sr := range srs {
 		sr.Register(srv.grpcsrv)
 	}
+}
+
+func (srv *RPCServer) AttachService(name string, svc service.Service) {
+	srv.grpcsvc[name] = svc
+	svc.Register(srv.grpcsrv)
 }

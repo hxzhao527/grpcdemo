@@ -9,6 +9,7 @@ import (
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 	"grpcdemo/proto/helloworld"
 	"sync"
@@ -65,4 +66,8 @@ func (s *Server) TryPanic(context.Context, *empty.Empty) (*empty.Empty, error) {
 
 func (s *Server) Register(rpcServer *grpc.Server) {
 	helloworld.RegisterHelloServer(rpcServer, s)
+}
+
+func (s *Server) Status() grpc_health_v1.HealthCheckResponse_ServingStatus {
+	return grpc_health_v1.HealthCheckResponse_SERVING
 }

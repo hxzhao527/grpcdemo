@@ -54,15 +54,17 @@ func main() {
 	}
 	if *auth {
 		log.Println("server enable auth")
-		opts = append(opts, server.WithAuthInterceptor(authToken))
+		opts = append(opts, server.WithAuthInterceptor(authToken, "grpc.health.v1.Health"))
 	}
 
 	//opts = append(opts, server.WithUnaryInterceptor(temp.Interceptor))
 	opts = append(opts, server.WithRecovery(nil))
 
 	rpcServer := server.NewRPCServer(opts...)
+	rpcServer.EnableHealth()
 
-	rpcServer.RegisterService(helloworld_impl.NewServer(), routeguide_impl.NewServer())
+	rpcServer.RegisterService(routeguide_impl.NewServer())
+	rpcServer.AttachService("helloworld.Hello", helloworld_impl.NewServer())
 	log.Println("service Registered")
 
 	go func() {
