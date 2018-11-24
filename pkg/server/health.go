@@ -8,7 +8,9 @@ package server
 import (
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	"log"
 	"sync"
+	"time"
 )
 
 var healthSvcOnce = sync.Once{}
@@ -22,12 +24,34 @@ func (srv *RPCServer) EnableHealth() {
 
 func (srv *RPCServer) initServiceStatus() {
 	for name, _ := range srv.grpcsvc {
-		srv.healthSvc.SetServingStatus(name, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+		srv.UpdateSericeStatus(name, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 	}
 }
 
 func (srv *RPCServer) checkServiceStatus() {
 	for name, svc := range srv.grpcsvc {
-		srv.healthSvc.SetServingStatus(name, svc.Status())
+		srv.UpdateSericeStatus(name, svc.Status())
 	}
+}
+
+// checkServiceStatusInterval will bring back unhealthy-svc
+func (srv *RPCServer) checkServiceStatusInterval(dur time.Duration) {
+	srv.healthCheckTimer = time.NewTicker(dur)
+TIME_CHECK:
+	for {
+		select {
+		case <-srv.healthCheckTimer.C:
+			srv.checkServiceStatus()
+		case <-srv.done:
+			break TIME_CHECK
+		}
+	}
+}
+
+func (srv *RPCServer) UpdateSericeStatus(svc string, status grpc_health_v1.HealthCheckResponse_ServingStatus) {
+	if _, ok := srv.grpcsvc[svc]; !ok {
+		return
+	}
+	log.Printf("svc %s update status to %d \n", svc, status)
+	srv.healthSvc.SetServingStatus(svc, status)
 }

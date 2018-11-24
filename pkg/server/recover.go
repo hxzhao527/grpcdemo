@@ -12,10 +12,10 @@ import (
 // RecoveryHandlerFunc is a function that recovers from the panic `p` by returning an `error`.
 // It refers to grpc_recovery.RecoveryHandlerFunc. The change is adding an argument `ctx` according to https://github.com/grpc-ecosystem/go-grpc-middleware/issues/168
 // If you need caller-info, `package google.golang.org/grpc/peer` maybe helpful.
-// It add a new argument `serverInfo` to pass server-info to handler.
-// If you also need request-info, just change RPCCallInfo by yourself.
+// It add a new argument `method` to pass fullmethodpath to handler.
+// If you also need request-info, just change this handle-signature by yourself.
 // If you want attach stacks of panic to error, `github.com/go-errors/errors` maybe helpful.
-type RecoveryHandler func(ctx context.Context, si *RPCCallInfo, p interface{}) (err error)
+type RecoveryHandler func(ctx context.Context, method string, p interface{}) (err error)
 
 func WithRecovery(handle RecoveryHandler) RPCServerOption {
 	mi := &MixRecoveryInterceptor{rcFunc: handle}
@@ -30,7 +30,7 @@ func (i *MixRecoveryInterceptor) UnaryInterceptor() grpc.UnaryServerInterceptor 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		defer func() {
 			if p := recover(); p != nil {
-				err = recoverFrom(ctx, ServerInfoFromGrpc(*info), p, i.rcFunc)
+				err = recoverFrom(ctx, info.FullMethod, p, i.rcFunc)
 			}
 		}()
 		return handler(ctx, req)
@@ -40,7 +40,7 @@ func (i *MixRecoveryInterceptor) StreamInterceptor() grpc.StreamServerIntercepto
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		defer func() {
 			if p := recover(); p != nil {
-				err = recoverFrom(ss.Context(), ServerInfoFromGrpc(*info), p, i.rcFunc)
+				err = recoverFrom(ss.Context(), info.FullMethod, p, i.rcFunc)
 			}
 		}()
 		err = handler(srv, ss) // is assignment necessary?
@@ -48,15 +48,15 @@ func (i *MixRecoveryInterceptor) StreamInterceptor() grpc.StreamServerIntercepto
 	}
 }
 
-func recoverFrom(ctx context.Context, si *RPCCallInfo, p interface{}, r RecoveryHandler) error {
+func recoverFrom(ctx context.Context, method string, p interface{}, r RecoveryHandler) error {
 	if r == nil {
-		return defaultRecoveryHandler(ctx, si, p)
+		return DefaultRecoveryHandler(ctx, method, p)
 	}
-	return r(ctx, si, p)
+	return r(ctx, method, p)
 }
 
-func defaultRecoveryHandler(ctx context.Context, si *RPCCallInfo, p interface{}) error {
-	message := fmt.Sprintf("Call %s ", si.FullMethod)
+func DefaultRecoveryHandler(ctx context.Context, method string, p interface{}) error {
+	message := fmt.Sprintf("Call %s ", method)
 	if c, ok := peer.FromContext(ctx); ok {
 		message += fmt.Sprintf("from client %s ", c.Addr.String())
 	}

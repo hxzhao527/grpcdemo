@@ -15,3 +15,15 @@ func WithMixInterceptor(mi MixInterceptor) RPCServerOption {
 		server.grpcStreamInterceptors = append(server.grpcStreamInterceptors, mi.StreamInterceptor())
 	}
 }
+
+func WithUnaryInterceptor(interceptor ...grpc.UnaryServerInterceptor) RPCServerOption {
+	return func(srv *RPCServer) {
+		srv.grpcUnaryInterceptors = append(srv.grpcUnaryInterceptors, interceptor...)
+	}
+}
+
+func WithStreamInterceptor(interceptor ...grpc.StreamServerInterceptor) RPCServerOption {
+	return func(srv *RPCServer) {
+		srv.grpcStreamInterceptors = append(srv.grpcStreamInterceptors, interceptor...)
+	}
+}

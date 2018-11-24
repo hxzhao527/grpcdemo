@@ -123,6 +123,9 @@ func (s *Server) RouteChat(stream routeguide.RouteGuide_RouteChatServer) error {
 func (s *Server) Register(rpcServer *grpc.Server) {
 	routeguide.RegisterRouteGuideServer(rpcServer, s)
 }
+func (s *Server) Name() string {
+	return "routeguide.RouteGuide"
+}
 
 // loadFeatures loads features
 func (s *Server) loadFeatures() {

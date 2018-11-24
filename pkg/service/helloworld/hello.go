@@ -71,3 +71,7 @@ func (s *Server) Register(rpcServer *grpc.Server) {
 func (s *Server) Status() grpc_health_v1.HealthCheckResponse_ServingStatus {
 	return grpc_health_v1.HealthCheckResponse_SERVING
 }
+
+func (s *Server) Name() string {
+	return "helloworld.Hello"
+}
