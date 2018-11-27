@@ -16,6 +16,7 @@ import (
 var healthSvcOnce = sync.Once{}
 
 func (srv *RPCServer) EnableHealth() {
+	log.Println("server enable health")
 	healthSvcOnce.Do(func() {
 		srv.healthSvc = health.NewServer()
 		grpc_health_v1.RegisterHealthServer(srv.grpcsrv, srv.healthSvc)
@@ -24,31 +25,31 @@ func (srv *RPCServer) EnableHealth() {
 
 func (srv *RPCServer) initServiceStatus() {
 	for name, _ := range srv.grpcsvc {
-		srv.UpdateSericeStatus(name, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+		srv.UpdateServiceStatus(name, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 	}
 }
 
 func (srv *RPCServer) checkServiceStatus() {
 	for name, svc := range srv.grpcsvc {
-		srv.UpdateSericeStatus(name, svc.Status())
+		srv.UpdateServiceStatus(name, svc.Status())
 	}
 }
 
 // checkServiceStatusInterval will bring back unhealthy-svc
 func (srv *RPCServer) checkServiceStatusInterval(dur time.Duration) {
 	srv.healthCheckTimer = time.NewTicker(dur)
-TIME_CHECK:
+TIMECHECK:
 	for {
 		select {
 		case <-srv.healthCheckTimer.C:
 			srv.checkServiceStatus()
 		case <-srv.done:
-			break TIME_CHECK
+			break TIMECHECK
 		}
 	}
 }
 
-func (srv *RPCServer) UpdateSericeStatus(svc string, status grpc_health_v1.HealthCheckResponse_ServingStatus) {
+func (srv *RPCServer) UpdateServiceStatus(svc string, status grpc_health_v1.HealthCheckResponse_ServingStatus) {
 	if _, ok := srv.grpcsvc[svc]; !ok {
 		return
 	}

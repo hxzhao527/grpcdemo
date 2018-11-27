@@ -31,19 +31,19 @@ protoc -I helloworld/ helloworld/helloworld.proto --go_out=plugins=grpc:hellowor
 ### 4. 运行在app目录下的server和client
 这里以helloworld为例
 ```sh
-go generate $GOPATH/src/grpcdemo/app/server
 go generate $GOPATH/src/grpcdemo/pkg/service/helloworld
 nohup go run $GOPATH/src/grpcdemo/app/server/main.go &
 go run $GOPATH/src/grpcdemo/app/helloworld/client/main.go
 ```
 如果要使用[Authentication](https://grpc.io/docs/guides/auth.html#go)
+使用[lc-tlscert.go](https://raw.githubusercontent.com/driskell/log-courier/1.x/src/lc-tlscert/lc-tlscert.go)生成证书(可以解决[no-ip-sans](https://serverfault.com/questions/611120/failed-tls-handshake-does-not-contain-any-ip-sans))
+将`selfsigned.crt`重命名为`public.pem`, `selfsigned.key`为`private.key`, 放到assets目录下. 在tools目录下有工具的拷贝, 可以使用
 ```sh
-go generate $GOPATH/src/grpcdemo/app/server
 go generate $GOPATH/src/grpcdemo/pkg/service/helloworld
 nohup go run $GOPATH/src/grpcdemo/app/server/main.go -ssl &
 go run $GOPATH/src/grpcdemo/app/helloworld/client/main.go -ssl
 ```
 
 ## 有什么注意的吗?
-1. [openssl/1.1.1 bug](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=898470)会导致`go generate`返回码不是0, 忽略就好.
+1. ~~[openssl/1.1.1 bug](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=898470)会导致`go generate`返回码不是0, 忽略就好.~~使用`lc-tlscert.go`就好了.
 2. 为啥不用[grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway), 鸡肋.不如使用`gin`写个web包一下还. 而且按照官方的指导竟然不能编译(可能是使用了dep的问题, 导致依赖默认拉不到最新).

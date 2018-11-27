@@ -1,5 +1,3 @@
-//go:generate  openssl req -x509 -nodes -newkey rsa:2048 -keyout assets/private.key -out assets/public.pem -days 3650 -subj "/CN=localhost"
-
 package main
 
 import (
@@ -13,7 +11,6 @@ import (
 	routeguide_impl "grpcdemo/pkg/service/routeguide"
 	"grpcdemo/pkg/util"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -25,15 +22,17 @@ import (
 )
 
 const (
-	port         = ":50051"
+	port         = 50051
 	certFilePath = "assets/public.pem"
 	keyFilePath  = "assets/private.key"
 	authToken    = "grpcdemo"
 )
 
 var (
-	ssl  = flag.Bool("ssl", false, "whether TLS enabled")
-	auth = flag.Bool("auth", false, "whether oauth enabled")
+	ssl           = flag.Bool("ssl", false, "whether TLS enabled")
+	auth          = flag.Bool("auth", false, "whether oauth enabled")
+	health        = flag.Bool("health", false, "whether enable health")
+	consulAddress = flag.String("consul", "", "consul address to register svc")
 )
 
 var (
@@ -66,7 +65,7 @@ func validToken(ctx context.Context) (context.Context, error) {
 }
 
 func recoveryHandle(ctx context.Context, method string, p interface{}) (err error) {
-	rpcServer.UpdateSericeStatus(util.GetServiceNameFromFullMethod(method), grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+	rpcServer.UpdateServiceStatus(util.GetServiceNameFromFullMethod(method), grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 	return server.DefaultRecoveryHandler(ctx, method, p)
 }
 
@@ -78,12 +77,6 @@ func main() {
 	sigs := make(chan os.Signal)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	lis, err := net.Listen("tcp", port)
-	defer lis.Close()
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
 
 	if *ssl {
 		log.Println("server in secure mode")
@@ -98,18 +91,23 @@ func main() {
 		opts = append(opts, server.WithAuthInterceptor(validToken, "grpc.health.v1.Health"))
 	}
 
-	//opts = append(opts, server.WithUnaryInterceptor(temp.Interceptor))
 	opts = append(opts, server.WithRecovery(recoveryHandle))
 
-	rpcServer = server.NewRPCServer(opts...)
-	rpcServer.EnableHealth()
+	if len(*consulAddress) > 0 {
+		opts = append(opts, server.WithConsulIntegration(*consulAddress))
+	}
+
+	rpcServer = server.NewRPCServer("", port, opts...)
+	if *health {
+		rpcServer.EnableHealth()
+	}
 
 	rpcServer.RegisterService(routeguide_impl.NewServer())
-	rpcServer.AttachService("helloworld.Hello", helloworld_impl.NewServer())
+	rpcServer.AttachService(helloworld_impl.NewServer())
 	log.Println("service Registered")
 
 	go func() {
-		done <- rpcServer.Run(lis)
+		done <- rpcServer.Run()
 	}()
 
 	select {

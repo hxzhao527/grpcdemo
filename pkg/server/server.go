@@ -1,18 +1,26 @@
 package server
 
 import (
-	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
+	"errors"
+	"fmt"
 	"grpcdemo/pkg/service"
 	"log"
 	"net"
 	"time"
+
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	consulApi "github.com/hashicorp/consul/api"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
 )
 
 type RPCServerOption func(*RPCServer)
 
 type RPCServer struct {
+	host     string
+	port     int
+	listener net.Listener
+
 	grpcsrv *grpc.Server
 
 	grpcUnaryInterceptors  []grpc.UnaryServerInterceptor
@@ -22,6 +30,7 @@ type RPCServer struct {
 	grpcsvc   map[string]service.Service
 	healthSvc *health.Server
 
+	consulClient     *consulApi.Client
 	healthCheckTimer *time.Ticker
 
 	running bool
@@ -35,8 +44,13 @@ func WithGrpcServerOption(grpcopts ...grpc.ServerOption) RPCServerOption {
 }
 
 // https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
-func NewRPCServer(opts ...RPCServerOption) *RPCServer {
-	srv := &RPCServer{grpcopts: make([]grpc.ServerOption, 0), grpcUnaryInterceptors: make([]grpc.UnaryServerInterceptor, 0), grpcStreamInterceptors: make([]grpc.StreamServerInterceptor, 0)}
+func NewRPCServer(host string, port int, opts ...RPCServerOption) *RPCServer {
+	srv := &RPCServer{grpcopts: make([]grpc.ServerOption, 0),
+		grpcUnaryInterceptors:  make([]grpc.UnaryServerInterceptor, 0),
+		grpcStreamInterceptors: make([]grpc.StreamServerInterceptor, 0),
+		host:                   host,
+		port:                   port,
+	}
 	for _, opt := range opts {
 		opt(srv)
 	}
@@ -50,23 +64,41 @@ func NewRPCServer(opts ...RPCServerOption) *RPCServer {
 	return srv
 }
 
-func (srv *RPCServer) Run(lis net.Listener) error {
+func (srv *RPCServer) Run() error {
+	if srv.running {
+		return errors.New("server has started, no need to started again")
+	}
+	var err error
+	srv.listener, err = net.Listen("tcp", fmt.Sprintf("%s:%d", srv.host, srv.port))
+	if err != nil {
+		return err
+	}
 	if srv.healthSvc != nil {
 		srv.initServiceStatus()
 		go srv.checkServiceStatusInterval(30 * time.Second)
 	}
+	if srv.consulClient != nil {
+		srv.registerWithConsul()
+	}
 	srv.running = true
-	return srv.grpcsrv.Serve(lis)
+	return srv.grpcsrv.Serve(srv.listener)
 }
 
 func (srv *RPCServer) Stop() {
-	srv.healthCheckTimer.Stop()
-	close(srv.done)
+	if srv.healthSvc != nil {
+		srv.healthCheckTimer.Stop()
+		close(srv.done)
+	}
+	if srv.consulClient != nil {
+		srv.deRegisterWithConsul()
+	}
+
 	srv.grpcsrv.GracefulStop()
+	_ = srv.listener.Close()
 	log.Println("rpc server graceful stopped successfully...")
 }
 
-// if want to use health, use AttachService instead
+// if want to use health and consul, use AttachService instead
 func (srv *RPCServer) RegisterService(srs ...service.ServiceRegister) {
 	if srv.running {
 		return
@@ -76,10 +108,12 @@ func (srv *RPCServer) RegisterService(srs ...service.ServiceRegister) {
 	}
 }
 
-func (srv *RPCServer) AttachService(name string, svc service.Service) {
+func (srv *RPCServer) AttachService(svcs ...service.Service) {
 	if srv.running {
 		return
 	}
-	srv.grpcsvc[name] = svc
-	svc.Register(srv.grpcsrv)
+	for _, svc := range svcs {
+		srv.grpcsvc[svc.Name()] = svc
+		svc.Register(srv.grpcsrv)
+	}
 }

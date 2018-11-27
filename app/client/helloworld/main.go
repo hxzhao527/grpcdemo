@@ -20,6 +20,7 @@ package main
 
 import (
 	"flag"
+	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc/codes"
 	"grpcdemo/pkg/client"
 	"log"
@@ -33,23 +34,23 @@ import (
 
 	"grpcdemo/proto/helloworld"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"golang.org/x/net/context"
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 )
 
 const (
-	address     = "localhost:50051"
 	defaultName = "世界"
 	caFilePath  = "assets/public.pem"
 	authToken   = "grpcdemo"
 )
 
 var (
-	name = flag.String("name", defaultName, "name to contact the server")
-	ssl  = flag.Bool("ssl", false, "whether TLS enabled")
-	auth = flag.Bool("auth", false, "whether oauth enabled")
+	address       = "192.168.1.115:50051"
+	name          = flag.String("name", defaultName, "name to contact the server")
+	ssl           = flag.Bool("ssl", false, "whether TLS enabled")
+	auth          = flag.Bool("auth", false, "whether oauth enabled")
+	consulAddress = flag.String("consul", "", "consul address to register svc")
 )
 
 func sayHello(client helloworld.HelloClient, name string) {
@@ -116,6 +117,10 @@ func main() {
 		grpc_retry.WithCodes(codes.Internal),
 	}
 	opts = append(opts, grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)))
+
+	if len(*consulAddress) > 0 {
+		address = "consul://pass/" + *consulAddress
+	}
 
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, opts...)

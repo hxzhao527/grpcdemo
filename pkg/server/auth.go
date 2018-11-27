@@ -52,8 +52,3 @@ func (i *MixAuthInterceptor) StreamInterceptor() grpc.StreamServerInterceptor {
 		return handler(srv, stream)
 	}
 }
-
-var (
-	// to check EnsureValidToken whether implement grpc.UnaryServerInterceptor
-	_ MixInterceptor = &MixAuthInterceptor{}
-)
