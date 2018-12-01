@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"grpcdemo/pkg/service"
 	"log"
 	"net"
 	"time"
@@ -27,7 +26,7 @@ type RPCServer struct {
 	grpcStreamInterceptors []grpc.StreamServerInterceptor
 	grpcopts               []grpc.ServerOption
 
-	grpcsvc   map[string]service.Service
+	grpcsvc   map[string]Service
 	healthSvc *health.Server
 
 	consulClient     *consulApi.Client
@@ -59,7 +58,7 @@ func NewRPCServer(host string, port int, opts ...RPCServerOption) *RPCServer {
 	srv.grpcopts = append(srv.grpcopts, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(srv.grpcUnaryInterceptors...)))
 
 	srv.grpcsrv = grpc.NewServer(srv.grpcopts...)
-	srv.grpcsvc = make(map[string]service.Service)
+	srv.grpcsvc = make(map[string]Service)
 	srv.done = make(chan struct{})
 	return srv
 }
@@ -99,7 +98,7 @@ func (srv *RPCServer) Stop() {
 }
 
 // if want to use health and consul, use AttachService instead
-func (srv *RPCServer) RegisterService(srs ...service.ServiceRegister) {
+func (srv *RPCServer) RegisterService(srs ...ServiceRegister) {
 	if srv.running {
 		return
 	}
@@ -108,7 +107,7 @@ func (srv *RPCServer) RegisterService(srs ...service.ServiceRegister) {
 	}
 }
 
-func (srv *RPCServer) AttachService(svcs ...service.Service) {
+func (srv *RPCServer) AttachService(svcs ...Service) {
 	if srv.running {
 		return
 	}

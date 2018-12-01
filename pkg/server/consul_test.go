@@ -15,11 +15,11 @@ func TestWithConsulIntegration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	consulAgentService, err := consulClient.Agent().Services()
+	consulAgentService, _, err := consulClient.Catalog().Service("helloworld-Hello", "", nil)
 	if err != nil {
 		t.Errorf("query form consul get err %s", err)
 	}
-	for sid, cfg := range consulAgentService {
-		t.Logf("svc: %s, addr:%s", sid, net.JoinHostPort(cfg.Address, strconv.Itoa(cfg.Port)))
+	for _, svc := range consulAgentService {
+		t.Logf("svc: %s, addr:%s", svc.ServiceName, net.JoinHostPort(svc.ServiceAddress, strconv.Itoa(svc.ServicePort)))
 	}
 }

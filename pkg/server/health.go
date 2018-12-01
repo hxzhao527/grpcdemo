@@ -50,6 +50,10 @@ TIMECHECK:
 }
 
 func (srv *RPCServer) UpdateServiceStatus(svc string, status grpc_health_v1.HealthCheckResponse_ServingStatus) {
+	if srv.healthSvc == nil {
+		log.Printf("server health not enabled, updating status will be ignored")
+		return
+	}
 	if _, ok := srv.grpcsvc[svc]; !ok {
 		return
 	}

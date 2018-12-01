@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"grpcdemo/pkg/util"
+	"grpcdemo/internal/util"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"golang.org/x/net/context"

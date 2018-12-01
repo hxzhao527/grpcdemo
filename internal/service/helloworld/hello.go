@@ -73,5 +73,7 @@ func (s *Server) Status() grpc_health_v1.HealthCheckResponse_ServingStatus {
 }
 
 func (s *Server) Name() string {
-	return "helloworld.Hello"
+	// https://www.ietf.org/rfc/rfc2782.txt
+	// alpha-numerics and dashes, DNS friendly
+	return "helloworld-Hello"
 }

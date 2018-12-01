@@ -20,21 +20,15 @@ package main
 
 import (
 	"flag"
+	client "grpcdemo/internal/client/helloworld"
+	rpcClient "grpcdemo/pkg/client"
+	"log"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc/codes"
-	"grpcdemo/pkg/client"
-	"log"
-	"time"
-
-	"github.com/golang/protobuf/ptypes/empty"
-
 	"google.golang.org/grpc/credentials"
-
 	"google.golang.org/grpc/status"
 
-	"grpcdemo/proto/helloworld"
-
-	"golang.org/x/net/context"
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 )
@@ -46,95 +40,68 @@ const (
 )
 
 var (
-	address       = "192.168.1.115:50051"
+	target        = "localhost:50051"
 	name          = flag.String("name", defaultName, "name to contact the server")
 	ssl           = flag.Bool("ssl", false, "whether TLS enabled")
 	auth          = flag.Bool("auth", false, "whether oauth enabled")
 	consulAddress = flag.String("consul", "", "consul address to register svc")
 )
 
-func sayHello(client helloworld.HelloClient, name string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := client.SayHello(ctx, &helloworld.HelloRequest{Name: name})
-	if err != nil {
-		log.Fatalf("could not greet: %v", err)
-	}
-	log.Printf("Greeting: %s", r.Message)
-}
-
-func sayHelloOnce(client helloworld.HelloClient, name string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := client.SayHelloOnce(ctx, &helloworld.HelloRequest{Name: name})
-	if err != nil {
-		s := status.Convert(err)
-		for _, d := range s.Details() {
-			switch info := d.(type) {
-			case *epb.QuotaFailure:
-				log.Printf("Quota failure: %v", info)
-			default:
-				log.Printf("Unexpected type: %v", info)
-			}
+func showErrorDetail(err error) {
+	s := status.Convert(err)
+	for _, d := range s.Details() {
+		switch info := d.(type) {
+		case *epb.QuotaFailure:
+			log.Printf("Quota failure: %v", info)
+		default:
+			log.Printf("Unexpected type: %v", info)
 		}
-		return
 	}
-	log.Printf("Greeting: %s", r.Message)
-}
-
-func tryPanic(client helloworld.HelloClient) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	_, err := client.TryPanic(ctx, &empty.Empty{})
-	if err != nil {
-		s := status.Convert(err)
-		log.Printf("request get error: %v", s.Message())
-		return
-	}
-	log.Println("request return normally")
 }
 
 func main() {
 	flag.Parse()
-	var opts []grpc.DialOption
+	var opts []rpcClient.RPCClientOption
 
 	if *ssl {
 		creds, err := credentials.NewClientTLSFromFile(caFilePath, "")
 		if err != nil {
 			log.Fatalf("Failed to create TLS credentials %v", err)
 		}
-		opts = append(opts, grpc.WithTransportCredentials(creds))
+		opts = append(opts, rpcClient.WithGrpcDialOption(grpc.WithTransportCredentials(creds)))
 	} else {
-		opts = append(opts, grpc.WithInsecure())
+		opts = append(opts, rpcClient.WithGrpcDialOption(grpc.WithInsecure()))
 	}
 
 	if *auth {
-		opts = append(opts, grpc.WithPerRPCCredentials(&client.AuthCreds{Token: authToken}))
+		opts = append(opts, rpcClient.WithGrpcDialOption(grpc.WithPerRPCCredentials(&rpcClient.AuthCreds{Token: authToken})))
 	}
 
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(3),
 		grpc_retry.WithCodes(codes.Internal),
 	}
-	opts = append(opts, grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)))
+	opts = append(opts, rpcClient.WithGrpcDialOption(grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...))))
 
 	if len(*consulAddress) > 0 {
-		address = "consul://pass/" + *consulAddress
+		opts = append(opts, client.WithConsul(*consulAddress))
+	} else {
+		opts = append(opts, rpcClient.WithTarget(target))
 	}
 
-	// Set up a connection to the server.
-	conn, err := grpc.Dial(address, opts...)
+	helloClient, err := client.NewClient(opts...)
+	defer helloClient.Close()
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Fatalln(err)
 	}
-	defer conn.Close()
+	log.Println(helloClient.SayHello(*name))
 
-	helloClient := helloworld.NewHelloClient(conn)
+	if resp, err := helloClient.SayHelloOnce(*name); err != nil {
+		// how to deal err is business logic
+		showErrorDetail(err)
+	} else {
+		log.Println(helloClient.SayHello(resp))
+	}
 
-	sayHello(helloClient, *name)
-
-	sayHelloOnce(helloClient, *name)
-	sayHelloOnce(helloClient, *name)
-
-	tryPanic(helloClient)
+	helloClient.TryPanic()
 }

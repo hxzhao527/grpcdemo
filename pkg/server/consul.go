@@ -2,7 +2,7 @@ package server
 
 import (
 	consulApi "github.com/hashicorp/consul/api"
-	"grpcdemo/pkg/util"
+	"grpcdemo/internal/util"
 	"log"
 )
 

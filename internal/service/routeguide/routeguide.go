@@ -124,7 +124,7 @@ func (s *Server) Register(rpcServer *grpc.Server) {
 	routeguide.RegisterRouteGuideServer(rpcServer, s)
 }
 func (s *Server) Name() string {
-	return "routeguide.RouteGuide"
+	return "routeguide-Routeguide"
 }
 
 // loadFeatures loads features

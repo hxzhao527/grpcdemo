@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
+// GetServiceNameFromFullMethod extract svc-name, like /helloworld.Hello/SayHello to helloworld-Hello
 func GetServiceNameFromFullMethod(fm string) string {
-	return strings.Trim(path.Dir(fm), "/")
+	tmp := strings.Trim(path.Dir(fm), "/")
+	return strings.Replace(tmp, ".", "-", -1)
 }
 
 // GetSelfIPAddress maybe not work well.

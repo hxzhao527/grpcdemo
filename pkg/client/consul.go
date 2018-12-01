@@ -15,7 +15,7 @@ const (
 	defaultFreq = 30 * time.Second
 )
 
-func NewConsulResovleBuilder() resolver.Builder {
+func NewConsulResolveBuilder() resolver.Builder {
 	return consulBuilder{}
 }
 
@@ -23,10 +23,10 @@ type consulBuilder struct {
 }
 
 func (cb consulBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
-	cr := consulResolver{cc: cc}
+	cr := consulResolver{cc: cc, svcName: target.Endpoint, consulAddr: target.Authority}
 	var err error
 	conf := consulApi.DefaultConfig()
-	conf.Address = target.Endpoint
+	conf.Address = target.Authority
 
 	if cr.consulClient, err = consulApi.NewClient(conf); err != nil {
 		return nil, err
@@ -48,7 +48,9 @@ func (cb consulBuilder) Scheme() string {
 }
 
 type consulResolver struct {
+	consulAddr   string
 	consulClient *consulApi.Client
+	svcName      string
 
 	cc resolver.ClientConn
 
@@ -80,13 +82,13 @@ func (cr consulResolver) watcher() {
 		case <-cr.rn:
 		}
 		var address []resolver.Address
-		consulAgentService, err := cr.consulClient.Agent().Services()
+		svcs, _, err := cr.consulClient.Catalog().Service(cr.svcName, "", nil)
 		if err != nil {
-			log.Printf("query form consul get err %s", err)
-			continue
+			log.Printf("query svc: %s from consul: %s got error %s", cr.svcName, cr.consulAddr, err)
+			return
 		}
-		for sid, cfg := range consulAgentService {
-			address = append(address, resolver.Address{Addr: net.JoinHostPort(cfg.Address, strconv.Itoa(cfg.Port)), ServerName: sid, Type: resolver.Backend})
+		for _, svc := range svcs {
+			address = append(address, resolver.Address{Addr: net.JoinHostPort(svc.ServiceAddress, strconv.Itoa(svc.ServicePort)), ServerName: svc.ServiceName})
 		}
 		log.Printf("found service: %#v", address)
 		cr.cc.NewAddress(address)
@@ -94,5 +96,5 @@ func (cr consulResolver) watcher() {
 }
 
 func init() {
-	resolver.Register(NewConsulResovleBuilder())
+	resolver.Register(NewConsulResolveBuilder())
 }
