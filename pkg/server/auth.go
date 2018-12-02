@@ -2,8 +2,6 @@ package server
 
 import (
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"grpcdemo/internal/util"
-
 	"github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -25,7 +23,7 @@ type MixAuthInterceptor struct {
 
 func (i *MixAuthInterceptor) UnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if _, ok := i.exclude[util.GetServiceNameFromFullMethod(info.FullMethod)]; ok {
+		if _, ok := i.exclude[GetServiceNameFromFullMethod(info.FullMethod)]; ok {
 			return handler(ctx, req)
 		}
 		newCtx, err := i.authFunc(ctx)
@@ -39,7 +37,7 @@ func (i *MixAuthInterceptor) UnaryInterceptor() grpc.UnaryServerInterceptor {
 
 func (i *MixAuthInterceptor) StreamInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if _, ok := i.exclude[util.GetServiceNameFromFullMethod(info.FullMethod)]; ok {
+		if _, ok := i.exclude[GetServiceNameFromFullMethod(info.FullMethod)]; ok {
 			return handler(srv, stream)
 		}
 		newCtx, err := i.authFunc(stream.Context())

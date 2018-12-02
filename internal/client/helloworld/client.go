@@ -1,14 +1,15 @@
 package helloworld
 
 import (
+	"log"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/hxzhao527/grpcdemo/pkg/client"
+	"github.com/hxzhao527/grpcdemo/proto/helloworld"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
-	"grpcdemo/pkg/client"
-	"grpcdemo/proto/helloworld"
-	"log"
-	"time"
 )
 
 type ClientOption func(client *Client)

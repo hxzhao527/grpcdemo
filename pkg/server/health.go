@@ -6,11 +6,12 @@
 package server
 
 import (
-	"google.golang.org/grpc/health"
-	"google.golang.org/grpc/health/grpc_health_v1"
 	"log"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var healthSvcOnce = sync.Once{}
@@ -24,7 +25,7 @@ func (srv *RPCServer) EnableHealth() {
 }
 
 func (srv *RPCServer) initServiceStatus() {
-	for name, _ := range srv.grpcsvc {
+	for name := range srv.grpcsvc {
 		srv.UpdateServiceStatus(name, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 	}
 }

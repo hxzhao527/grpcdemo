@@ -5,13 +5,14 @@ package routeguide
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
-	"grpcdemo/proto/routeguide"
 	"io"
 	"log"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/hxzhao527/grpcdemo/proto/routeguide"
+	"google.golang.org/grpc"
 
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"

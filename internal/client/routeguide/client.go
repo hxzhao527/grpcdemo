@@ -1,14 +1,15 @@
 package routeguide
 
 import (
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"grpcdemo/pkg/client"
-	"grpcdemo/proto/routeguide"
 	"io"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/hxzhao527/grpcdemo/pkg/client"
+	"github.com/hxzhao527/grpcdemo/proto/routeguide"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type Client struct {

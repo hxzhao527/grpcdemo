@@ -20,9 +20,10 @@ package main
 
 import (
 	"flag"
-	client "grpcdemo/internal/client/helloworld"
-	rpcClient "grpcdemo/pkg/client"
 	"log"
+
+	client "github.com/hxzhao527/grpcdemo/internal/client/helloworld"
+	rpcClient "github.com/hxzhao527/grpcdemo/pkg/client"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc/codes"

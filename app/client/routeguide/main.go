@@ -24,11 +24,12 @@ package main
 
 import (
 	"flag"
-	"google.golang.org/grpc/credentials"
-	client "grpcdemo/internal/client/routeguide"
-	rpcClient "grpcdemo/pkg/client"
-	"grpcdemo/proto/routeguide"
 	"log"
+
+	client "github.com/hxzhao527/grpcdemo/internal/client/routeguide"
+	rpcClient "github.com/hxzhao527/grpcdemo/pkg/client"
+	"github.com/hxzhao527/grpcdemo/proto/routeguide"
+	"google.golang.org/grpc/credentials"
 
 	"google.golang.org/grpc"
 )

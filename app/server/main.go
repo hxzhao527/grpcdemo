@@ -4,14 +4,15 @@ package main
 
 import (
 	"flag"
-	"grpcdemo/internal/server"
-	helloworldImpl "grpcdemo/internal/service/helloworld"
-	routeguideImpl "grpcdemo/internal/service/routeguide"
-	rpcServer "grpcdemo/pkg/server"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/hxzhao527/grpcdemo/internal/server"
+	helloworldImpl "github.com/hxzhao527/grpcdemo/internal/service/helloworld"
+	routeguideImpl "github.com/hxzhao527/grpcdemo/internal/service/routeguide"
+	rpcServer "github.com/hxzhao527/grpcdemo/pkg/server"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -67,7 +68,6 @@ func main() {
 	if *health {
 		myServer.EnableHealth()
 	}
-	log.Printf("2: %p", myServer)
 	myServer.RegisterService(routeguideImpl.NewServer())
 	myServer.AttachService(helloworldImpl.NewServer())
 	log.Println("service Registered")

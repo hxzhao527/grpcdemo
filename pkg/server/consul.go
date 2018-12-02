@@ -2,12 +2,13 @@ package server
 
 import (
 	consulApi "github.com/hashicorp/consul/api"
-	"grpcdemo/internal/util"
 	"log"
+	"net"
 )
 
 type ConsulConfig consulApi.Config
 
+// TODO: refer resolver, to refactor register
 func WithConsulIntegration(consulAddress string) RPCServerOption {
 	conf := consulApi.DefaultConfig()
 	conf.Address = consulAddress
@@ -26,7 +27,7 @@ func (srv *RPCServer) registerWithConsul() {
 	ipAddrStr := srv.host
 	if len(srv.host) == 0 {
 		// not perfect, you should pass svc-address(not server host) though config-file ot others.
-		ipAddrStr = util.GetSelfIPAddress().String()
+		ipAddrStr = getSelfIPAddress().String()
 	}
 	for name := range srv.grpcsvc {
 		err := srv.consulClient.Agent().ServiceRegister(&consulApi.AgentServiceRegistration{Name: name, Address: ipAddrStr, Port: srv.port})
@@ -43,4 +44,29 @@ func (srv *RPCServer) deRegisterWithConsul() {
 			log.Printf("deregister svc %s to consul get error: %s", name, err)
 		}
 	}
+}
+
+// GetSelfIPAddress maybe not work well.
+func getSelfIPAddress() net.IP {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	for _, i := range ifaces {
+		addrs, _ := i.Addrs()
+		// handle err
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				if !v.IP.IsLoopback() {
+					return v.IP
+				}
+			case *net.IPAddr:
+				if !v.IP.IsLoopback() {
+					return v.IP
+				}
+			}
+		}
+	}
+	return nil
 }

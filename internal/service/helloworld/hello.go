@@ -4,16 +4,17 @@ package helloworld
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/hxzhao527/grpcdemo/proto/helloworld"
 	"golang.org/x/net/context"
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
-	"grpcdemo/proto/helloworld"
-	"sync"
-	"sync/atomic"
 )
 
 // Server is used to implement helloworld.GreeterServer.
